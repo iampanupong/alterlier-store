@@ -1,26 +1,487 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Design system
+   Monochrome, editorial, square-cornered. Imagery carries the colour;
+   UI stays black/white with hairline dividers and small, tight type.
+   ========================================================================== */
+
+/* ---------- Raw tokens (runtime CSS variables) ---------- */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Colour */
+  --ink: #000000;
+  --paper: #ffffff;
+  --surface: #fbfbfb; /* product tiles, image placeholders */
+  --surface-strong: #f2f2f2;
+  --muted: #6b6b6b; /* secondary text */
+  --subtle: #9a9a9a; /* placeholders, disabled */
+  --line: rgb(0 0 0 / 0.15); /* hairline dividers */
+  --line-strong: #bbbbbb; /* form fields */
+  --scrim: rgb(0 0 0 / 0.4);
+  --danger: #b00020;
+  --warning: #a35a00;
+  --success: #1e6b3a;
+
+  /* Layout: side gutter and header height step up with viewport */
+  --gutter: 1rem;
+  --header-h: 3.5rem;
+  --section-y: 4rem;
+
+  /* Motion */
+  --ease-luxe: cubic-bezier(0.5, 0, 0, 1);
+  --duration-slow: 800ms;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@media (width >= 48rem) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --gutter: 2rem;
+    --section-y: 6rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (width >= 64rem) {
+  :root {
+    --gutter: 4rem;
+    --header-h: 4.5rem;
+    --section-y: 8rem;
+  }
+}
+
+/* Inverse sections (footer, dark editorial bands): swap ink and paper. */
+.theme-inverse {
+  --ink: #ffffff;
+  --paper: #000000;
+  --surface: #111111;
+  --surface-strong: #1c1c1c;
+  --muted: #a3a3a3;
+  --subtle: #6b6b6b;
+  --line: rgb(255 255 255 / 0.2);
+  --line-strong: #5c5c5c;
+  background-color: var(--paper);
+  color: var(--ink);
+}
+
+/* ---------- Tailwind theme (generates utilities) ---------- */
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-scrim: var(--scrim);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+
+  --font-sans: var(--font-brand-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* `px-gutter`, `h-header`, `py-section`, etc. */
+  --spacing-gutter: var(--gutter);
+  --spacing-header: var(--header-h);
+  --spacing-section: var(--section-y);
+
+  --ease-luxe: var(--ease-luxe);
+}
+
+@theme {
+  /* Square corners are the default language; only `rounded-full` (icons) is expected. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+
+  --container-prose: 45rem;
+  --container-page: 90rem;
+
+  /* Type scale: small, tight UI copy; thin large display. */
+  --text-caption: 0.75rem; /* 12/16 — meta, footer links, prices */
+  --text-caption--line-height: 1rem;
+  --text-caption--letter-spacing: -0.03em;
+  --text-caption--font-weight: 500;
+
+  --text-label: 0.75rem; /* 12/16 bold caps — buttons, nav, section eyebrows */
+  --text-label--line-height: 1rem;
+  --text-label--letter-spacing: 0.02em;
+  --text-label--font-weight: 700;
+
+  --text-body: 0.875rem; /* 14/20 — paragraphs */
+  --text-body--line-height: 1.25rem;
+  --text-body--letter-spacing: -0.01em;
+
+  --text-title: 1rem; /* 16/24 — product names, card titles */
+  --text-title--line-height: 1.5rem;
+  --text-title--letter-spacing: -0.04em;
+  --text-title--font-weight: 500;
+
+  --text-heading: 1.25rem; /* 20/28 — page titles on mobile */
+  --text-heading--line-height: 1.75rem;
+  --text-heading--letter-spacing: -0.02em;
+  --text-heading--font-weight: 500;
+
+  --text-display: 2rem; /* 32/40 thin — category/hero headlines */
+  --text-display--line-height: 2.5rem;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 200;
+
+  --text-display-lg: clamp(2.5rem, 1.5rem + 3vw, 4rem);
+  --text-display-lg--line-height: 1.05;
+  --text-display-lg--letter-spacing: -0.03em;
+  --text-display-lg--font-weight: 200;
+}
+
+/* ---------- Base ---------- */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: var(--header-h);
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    letter-spacing: var(--text-body--letter-spacing);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--ink);
+    color: var(--paper);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  hr {
+    border-color: var(--line);
+  }
+
+  img,
+  video {
+    background-color: var(--surface);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ---------- Typography helpers ---------- */
+
+/* Bold uppercase eyebrow / section heading. */
+@utility eyebrow {
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  letter-spacing: var(--text-label--letter-spacing);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ---------- Layout primitives ---------- */
+
+/* Page-width wrapper with responsive side gutters (16 / 32 / 64px). */
+@utility container-page {
+  width: 100%;
+  max-width: var(--container-page);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Readable text column. */
+@utility container-prose {
+  width: 100%;
+  max-width: var(--container-prose);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Break out of any container to the viewport edges (editorial imagery). */
+@utility full-bleed {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+/* Vertical rhythm between page sections. */
+@utility section {
+  padding-block: var(--section-y);
+}
+
+/* Edge-to-edge product grid: 2 / 3 / 4 columns separated by 1px hairlines. */
+@utility grid-products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background-color: var(--line);
+
+  & > * {
+    background-color: var(--paper);
+  }
+
+  @media (width >= 48rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (width >= 64rem) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Editorial split: stacked on mobile, two seamless halves from tablet up. */
+@utility grid-editorial {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+
+  @media (width >= 48rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Gutter-spaced card row (services, stories): 1 / 2 / 3 columns. */
+@utility grid-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--gutter);
+
+  @media (width >= 40rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (width >= 64rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Horizontally scrolling row (category chips, carousels) with hidden scrollbar. */
+@utility scroll-row {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  & > * {
+    flex: none;
+    scroll-snap-align: start;
+  }
+}
+
+/* Media frames: fixed ratios, cover-cropped, surface placeholder. */
+@utility media {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--surface);
+
+  & > img,
+  & > video,
+  & > picture,
+  & > picture > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+@utility media-portrait {
+  aspect-ratio: 3 / 4;
+}
+
+@utility media-square {
+  aspect-ratio: 1 / 1;
+}
+
+@utility media-landscape {
+  aspect-ratio: 16 / 9;
+}
+
+/* Full-viewport hero that sits under a transparent header. */
+@utility media-hero {
+  height: 100svh;
+  min-height: 32rem;
+}
+
+/* ---------- Buttons ---------- */
+
+/* Square, 48px tall, bold caps. Hover fill wipes in from the left. */
+@utility btn {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 1rem 1.5rem;
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  letter-spacing: var(--text-label--letter-spacing);
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--duration-slow) var(--ease-luxe);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform var(--duration-slow) var(--ease-luxe);
+  }
+
+  &:hover::before {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    pointer-events: none;
+    opacity: 0.4;
+  }
+}
+
+/* Solid ink → inverts on hover. */
+@utility btn-primary {
+  background-color: var(--ink);
+  color: var(--paper);
+
+  &::before {
+    background-color: var(--paper);
+  }
+
+  &:hover {
+    color: var(--ink);
+  }
+}
+
+/* Outline → fills with ink on hover. */
+@utility btn-secondary {
+  background-color: transparent;
+  color: var(--ink);
+
+  &::before {
+    background-color: var(--ink);
+  }
+
+  &:hover {
+    color: var(--paper);
+  }
+}
+
+/* Over imagery: white fill, no border. */
+@utility btn-on-media {
+  border-color: #ffffff;
+  background-color: #ffffff;
+  color: #000000;
+
+  &::before {
+    background-color: #000000;
+  }
+
+  &:hover {
+    color: #ffffff;
+  }
+}
+
+@utility btn-block {
+  width: 100%;
+}
+
+/* Square icon button (header actions). */
+@utility btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: currentColor;
+  cursor: pointer;
+}
+
+/* ---------- Links ---------- */
+
+/* Underlined inline link; underline lifts on hover. */
+@utility link {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color 300ms var(--ease-luxe);
+
+  &:hover {
+    text-decoration-color: transparent;
+  }
+}
+
+/* Quiet nav link; underline appears on hover / current page. */
+@utility link-quiet {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 300ms var(--ease-luxe);
+
+  &:hover,
+  &[aria-current="page"] {
+    text-decoration-color: currentColor;
+  }
+}
+
+/* ---------- Borders & fields ---------- */
+
+@utility hairline {
+  border-color: var(--line);
+}
+
+/* Underline-only input. */
+@utility field {
+  width: 100%;
+  min-height: 3rem;
+  padding-block: 0.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1rem; /* 16px avoids iOS zoom on focus */
+  line-height: 1.5rem;
+  transition: border-color 300ms var(--ease-luxe);
+
+  &::placeholder {
+    color: var(--subtle);
+  }
+
+  &:focus {
+    outline: none;
+    border-bottom-color: var(--ink);
+  }
+
+  &[aria-invalid="true"] {
+    border-bottom-color: var(--danger);
+  }
 }
