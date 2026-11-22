@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { PASSWORD_MIN, validateForm, type FieldErrors } from "@/lib/auth-validation";
+import { clientIp, withinLimits } from "@/lib/rate-limit";
 import { safeNext } from "@/lib/session";
 
 export type AuthFormState = {
@@ -26,7 +27,13 @@ function password(formData: FormData) {
   return typeof value === "string" ? value : "";
 }
 
-const RATE_LIMITED = "Too many attempts. Please wait a moment and try again.";
+const RATE_LIMITED = "Too many attempts. Please wait a few minutes and try again.";
+
+// Better Auth's limiter doesn't run for `auth.api.*` calls, so these actions limit themselves.
+// Per-IP stops one client hammering; per-email stops a distributed guess at one account.
+const SIGN_IN_PER_IP = { max: 20, windowSeconds: 10 * 60 };
+const SIGN_IN_PER_EMAIL = { max: 10, windowSeconds: 10 * 60 };
+const SIGN_UP_PER_IP = { max: 10, windowSeconds: 60 * 60 };
 
 function hasErrors(errors: FieldErrors) {
   return Object.keys(errors).length > 0;
@@ -42,6 +49,13 @@ export async function signInAction(
   const fieldErrors = validateForm("sign-in", { email, password: pwd });
   if (hasErrors(fieldErrors)) return { fieldErrors, values };
 
+  const ip = await clientIp();
+  const allowed = await withinLimits([
+    [`sign-in:ip:${ip}`, SIGN_IN_PER_IP],
+    [`sign-in:email:${email.toLowerCase()}`, SIGN_IN_PER_EMAIL],
+  ]);
+  if (!allowed) return { error: RATE_LIMITED, values };
+
   try {
     await auth.api.signInEmail({
       body: { email, password: pwd, rememberMe: true },
@@ -51,10 +65,7 @@ export async function signInAction(
     if (error instanceof APIError) {
       // One message for every credential failure so accounts can't be enumerated.
       return {
-        error:
-          error.status === "TOO_MANY_REQUESTS"
-            ? RATE_LIMITED
-            : "That email and password don't match an account. Check them and try again.",
+        error: "That email and password don't match an account. Check them and try again.",
         values,
       };
     }
@@ -74,6 +85,10 @@ export async function signUpAction(
   const values = { name, email };
   const fieldErrors = validateForm("sign-up", { name, email, password: pwd });
   if (hasErrors(fieldErrors)) return { fieldErrors, values };
+
+  if (!(await withinLimits([[`sign-up:ip:${await clientIp()}`, SIGN_UP_PER_IP]]))) {
+    return { error: RATE_LIMITED, values };
+  }
 
   try {
     // `role` is input: false, so only these fields are accepted.
@@ -106,12 +121,7 @@ function signUpError(error: APIError): AuthFormState {
     case "INVALID_EMAIL":
       return { fieldErrors: { email: "Enter a valid email address, like name@example.com." } };
     default:
-      return {
-        error:
-          error.status === "TOO_MANY_REQUESTS"
-            ? RATE_LIMITED
-            : "We couldn't create your account. Please try again.",
-      };
+      return { error: "We couldn't create your account. Please try again." };
   }
 }
 

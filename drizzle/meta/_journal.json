@@ -22,6 +22,13 @@
       "when": 1795385257831,
       "tag": "0002_steady_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795387694639,
+      "tag": "0003_slim_bishop",
+      "breakpoints": true
     }
   ]
 }
