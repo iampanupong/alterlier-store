@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { signOutAction } from "@/app/(auth)/actions";
-import { Breadcrumb } from "@/components/breadcrumb";
+import { DetailList, DetailListFallback } from "@/components/account/detail-list";
+import { ArrowRightIcon } from "@/components/ui/icons";
 import { requireUser } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -10,71 +10,66 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AccountPage() {
-  return (
-    <main id="main" className="pt-header">
-      <div className="px-gutter pt-6">
-        <Breadcrumb current="My account" />
-      </div>
-
-      <div className="px-gutter pt-10 pb-section lg:pt-16">
-        <div className="max-w-md">
-          <h1 className="text-display">My account</h1>
-          <Suspense fallback={<DetailsFallback />}>
-            <AccountDetails />
-          </Suspense>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-const memberSince = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" });
-
-async function AccountDetails() {
-  const user = await requireUser("/account");
-
+export default function AccountOverviewPage() {
   return (
     <>
-      <dl className="mt-10 divide-y divide-line border-y border-line">
-        <Detail term="Name">{user.name}</Detail>
-        <Detail term="Email">{user.email}</Detail>
-        <Detail term="Member since">{memberSince.format(user.createdAt)}</Detail>
-      </dl>
-
-      <div className="mt-10 flex flex-wrap gap-3">
-        <form action={signOutAction}>
-          <button type="submit" className="btn btn-secondary">
-            Sign out
-          </button>
-        </form>
-        {user.role === "admin" ? (
-          <Link href="/admin" className="btn btn-primary">
-            Admin
-          </Link>
-        ) : null}
-      </div>
+      <h1 className="text-display">My account</h1>
+      <Suspense fallback={<OverviewFallback />}>
+        <Overview />
+      </Suspense>
     </>
   );
 }
 
-function Detail({ term, children }: { term: string; children: React.ReactNode }) {
+async function Overview() {
+  const user = await requireUser("/account");
+  const firstName = user.name.split(/\s+/)[0] || user.name;
+
   return (
-    <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-4 py-4">
-      <dt className="eyebrow text-muted">{term}</dt>
-      <dd className="text-body break-words">{children}</dd>
-    </div>
+    <>
+      <p className="mt-3 text-body text-muted">Welcome back, {firstName}.</p>
+
+      <section aria-labelledby="overview-details" className="mt-12">
+        <div className="mb-4 flex items-baseline justify-between gap-4">
+          <h2 id="overview-details" className="eyebrow">
+            Your details
+          </h2>
+          <Link href="/account/details" className="link text-caption">
+            View all
+          </Link>
+        </div>
+        <DetailList
+          items={[
+            { term: "Name", value: user.name },
+            { term: "Email", value: user.email },
+          ]}
+        />
+      </section>
+
+      <section aria-labelledby="overview-shop" className="mt-12 bg-surface p-6 sm:p-8">
+        <h2 id="overview-shop" className="text-title">
+          Discover what&rsquo;s new
+        </h2>
+        <p className="mt-2 text-body text-muted">
+          See the latest additions to the collection.
+        </p>
+        <Link href="/new-arrivals" className="btn btn-secondary mt-6">
+          New arrivals
+          <ArrowRightIcon width={16} height={16} />
+        </Link>
+      </section>
+    </>
   );
 }
 
-function DetailsFallback() {
+function OverviewFallback() {
   return (
-    <div aria-hidden="true" className="mt-10 divide-y divide-line border-y border-line">
-      {Array.from({ length: 3 }, (_, i) => (
-        <div key={i} className="py-4">
-          <div className="h-4 w-2/3 bg-surface-strong" />
-        </div>
-      ))}
-    </div>
+    <>
+      <div aria-hidden="true" className="mt-3 h-5 w-40 bg-surface-strong" />
+      <div className="mt-12">
+        <div aria-hidden="true" className="mb-4 h-4 w-24 bg-surface-strong" />
+        <DetailListFallback rows={2} />
+      </div>
+    </>
   );
 }
