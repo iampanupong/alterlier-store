@@ -1,18 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useActionState, useState } from "react";
+import { addToCartAction, type CartActionState } from "@/app/cart/actions";
 import { HeartIcon } from "@/components/ui/icons";
 import type { StockState } from "@/lib/catalog";
 
 type PurchasePanelProps = {
+  productId: string;
   productName: string;
   stock: StockState;
 };
 
-// Front-end only: there is no cart or wishlist backend yet, so actions just
-// update local UI state.
-export function PurchasePanel({ productName, stock }: PurchasePanelProps) {
-  const [added, setAdded] = useState(false);
+// "Add to bag" goes through a server action that checks live stock; only the
+// product id is sent. Save and "notify me" are still front-end only.
+export function PurchasePanel({ productId, productName, stock }: PurchasePanelProps) {
+  const [cart, addAction, adding] = useActionState<CartActionState, FormData>(addToCartAction, {
+    status: "idle",
+    message: "",
+  });
   const [saved, setSaved] = useState(false);
   const [notify, setNotify] = useState(false);
 
@@ -31,9 +37,12 @@ export function PurchasePanel({ productName, stock }: PurchasePanelProps) {
             {notify ? "We’ll let you know" : "Notify me when available"}
           </button>
         ) : (
-          <button type="button" className="btn btn-primary flex-1" onClick={() => setAdded(true)}>
-            Add to bag
-          </button>
+          <form action={addAction} className="flex flex-1">
+            <input type="hidden" name="productId" value={productId} />
+            <button type="submit" className="btn btn-primary flex-1" disabled={adding}>
+              {adding ? "Adding…" : "Add to bag"}
+            </button>
+          </form>
         )}
         <button
           type="button"
@@ -47,7 +56,17 @@ export function PurchasePanel({ productName, stock }: PurchasePanelProps) {
       </div>
 
       <p role="status" className="min-h-4 text-caption">
-        {added && "Added to your bag."}
+        {/* Keyed on the response time so a repeated message is announced again. */}
+        {cart.status !== "idle" && (
+          <span key={cart.at} className={cart.status === "error" ? "text-danger" : undefined}>
+            {cart.message}{" "}
+            {cart.status !== "error" && (
+              <Link href="/cart" className="link text-ink">
+                View bag
+              </Link>
+            )}
+          </span>
+        )}
         {notify && "We’ll email you as soon as this piece is back in stock."}
       </p>
     </div>

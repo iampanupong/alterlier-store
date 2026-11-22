@@ -14,7 +14,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
     "auth:make-admin": "tsx src/db/make-admin.ts",
-    "auth:generate": "npx auth@1.7.16 generate --config src/lib/auth.ts --output src/db/auth-schema.ts -y && node scripts/fix-auth-schema.mjs"
+    "auth:generate": "npx auth@1.7.16 generate --config src/lib/auth.ts --output src/db/auth-schema.ts -y && node scripts/fix-auth-schema.mjs",
+    "test": "tsx --test src/lib/*.test.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
+import { Suspense } from "react";
+import { CartCount } from "@/components/cart/cart-count";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import "./globals.css";
@@ -28,7 +30,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <SiteHeader />
+        <SiteHeader
+          cartCount={
+            <Suspense fallback={null}>
+              <CartCount />
+            </Suspense>
+          }
+        />
         <div className="flex-1">{children}</div>
         <SiteFooter />
       </body>
