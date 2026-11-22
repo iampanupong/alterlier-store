@@ -118,6 +118,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
 
             <div className="mt-8">
               <PurchasePanel
+                productId={product.id}
                 productName={product.name}
                 stock={product.stock}
               />

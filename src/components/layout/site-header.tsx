@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   BagIcon,
   CloseIcon,
@@ -15,7 +15,12 @@ import { mainNav } from "@/lib/sample-data";
 /** Routes whose first section is a full-bleed hero the header floats over. */
 const OVERLAY_ROUTES = new Set(["/"]);
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  /** Server-rendered bag count badge (streamed in; reads the cart cookie). */
+  cartCount?: ReactNode;
+};
+
+export function SiteHeader({ cartCount }: SiteHeaderProps) {
   const pathname = usePathname();
   const overlayRoute = OVERLAY_ROUTES.has(pathname);
   const [scrolled, setScrolled] = useState(false);
@@ -70,8 +75,10 @@ export function SiteHeader() {
           </Link>
 
           <nav aria-label="Account and cart" className="col-start-3 flex items-center justify-end">
-            <Link href="/cart" className="btn-icon" aria-label="Shopping bag">
+            <Link href="/cart" className="btn-icon relative">
               <BagIcon />
+              <span className="sr-only">Shopping bag</span>
+              {cartCount}
             </Link>
             <Link
               href="/account"

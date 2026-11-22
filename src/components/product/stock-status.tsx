@@ -12,8 +12,8 @@ export function StockStatus({ stock }: { stock: StockState }) {
 
   return (
     <p className="flex items-center gap-2 text-caption">
-      <span aria-hidden="true" className={`size-1.5 rounded-full ${copy.dot}`} />
-      <span className="font-bold">{label}</span>
+      <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${copy.dot}`} />
+      <span className="shrink-0 font-bold">{label}</span>
       <span className="text-muted">· {copy.note}</span>
     </p>
   );

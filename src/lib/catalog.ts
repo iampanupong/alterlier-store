@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { categories, type Image } from "@/db/catalog";
 
 export type { Image };
+export { formatPrice } from "@/lib/format";
 
 export type StockState =
   | { status: "in_stock" }
@@ -84,6 +85,27 @@ function toProduct(row: ProductRow): Product {
     stock: toStockState(row.stockQuantity, row.lowStockThreshold),
     badge: row.badge,
   };
+}
+
+export type LiveProduct = Product & { priceCents: number; stockQuantity: number };
+
+/**
+ * Products by id, read fresh from the database. Deliberately NOT cached: the cart
+ * validates quantities and prices against these, so they must reflect current stock
+ * and pricing. Request-time data, so callers sit inside <Suspense> or a server action.
+ */
+export async function getLiveProducts(ids: string[]): Promise<Map<string, LiveProduct>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db.query.products.findMany({
+    where: (p, { inArray }) => inArray(p.id, ids),
+    with: { category: true },
+  });
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      { ...toProduct(row), priceCents: row.priceCents, stockQuantity: row.stockQuantity },
+    ]),
+  );
 }
 
 export async function getProductSlugs() {
@@ -273,15 +295,4 @@ export async function searchProducts(query: string) {
     limit: SEARCH_LIMIT,
   });
   return rows.map(toProduct);
-}
-
-const priceFormat =new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  // "$2,450" for whole amounts, "$199.50" otherwise.
-  trailingZeroDisplay: "stripIfInteger",
-});
-
-export function formatPrice(amount: number) {
-  return priceFormat.format(amount);
 }
