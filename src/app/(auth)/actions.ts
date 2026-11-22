@@ -4,10 +4,15 @@ import { APIError } from "better-auth/api";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { PASSWORD_MIN, validateForm, type FieldErrors } from "@/lib/auth-validation";
 import { safeNext } from "@/lib/session";
 
 export type AuthFormState = {
+  /** Form-level problem (bad credentials, rate limit, unexpected failure). */
   error?: string;
+  fieldErrors?: FieldErrors;
+  /** Sign-up hit an existing account: the form offers a sign-in link. */
+  emailTaken?: boolean;
   values?: { name?: string; email?: string };
 };
 
@@ -16,19 +21,30 @@ function field(formData: FormData, name: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function password(formData: FormData) {
+  const value = formData.get("password");
+  return typeof value === "string" ? value : "";
+}
+
+const RATE_LIMITED = "Too many attempts. Please wait a moment and try again.";
+
+function hasErrors(errors: FieldErrors) {
+  return Object.keys(errors).length > 0;
+}
+
 export async function signInAction(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
   const email = field(formData, "email");
-  const password = formData.get("password");
-  if (!email || typeof password !== "string" || !password) {
-    return { error: "Enter your email and password.", values: { email } };
-  }
+  const pwd = password(formData);
+  const values = { email };
+  const fieldErrors = validateForm("sign-in", { email, password: pwd });
+  if (hasErrors(fieldErrors)) return { fieldErrors, values };
 
   try {
     await auth.api.signInEmail({
-      body: { email, password, rememberMe: true },
+      body: { email, password: pwd, rememberMe: true },
       headers: await headers(),
     });
   } catch (error) {
@@ -37,9 +53,9 @@ export async function signInAction(
       return {
         error:
           error.status === "TOO_MANY_REQUESTS"
-            ? "Too many attempts. Please wait a moment and try again."
-            : "Email or password is incorrect.",
-        values: { email },
+            ? RATE_LIMITED
+            : "That email and password don't match an account. Check them and try again.",
+        values,
       };
     }
     throw error;
@@ -54,21 +70,20 @@ export async function signUpAction(
 ): Promise<AuthFormState> {
   const name = field(formData, "name");
   const email = field(formData, "email");
-  const password = formData.get("password");
+  const pwd = password(formData);
   const values = { name, email };
-  if (!name || !email || typeof password !== "string" || !password) {
-    return { error: "Fill in your name, email and password.", values };
-  }
+  const fieldErrors = validateForm("sign-up", { name, email, password: pwd });
+  if (hasErrors(fieldErrors)) return { fieldErrors, values };
 
   try {
     // `role` is input: false, so only these fields are accepted.
     await auth.api.signUpEmail({
-      body: { name, email, password },
+      body: { name, email, password: pwd },
       headers: await headers(),
     });
   } catch (error) {
     if (error instanceof APIError) {
-      return { error: signUpMessage(error), values };
+      return { ...signUpError(error), values };
     }
     throw error;
   }
@@ -76,21 +91,27 @@ export async function signUpAction(
   redirect(safeNext(formData.get("next")));
 }
 
-function signUpMessage(error: APIError) {
+function signUpError(error: APIError): AuthFormState {
   switch (error.body?.code) {
     case "USER_ALREADY_EXISTS":
     case "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL":
-      return "An account with this email already exists. Sign in instead.";
+      return {
+        fieldErrors: { email: "An account with this email already exists." },
+        emailTaken: true,
+      };
     case "PASSWORD_TOO_SHORT":
-      return "Use at least 8 characters for your password.";
+      return { fieldErrors: { password: `Use at least ${PASSWORD_MIN} characters.` } };
     case "PASSWORD_TOO_LONG":
-      return "That password is too long.";
+      return { fieldErrors: { password: "That password is too long." } };
     case "INVALID_EMAIL":
-      return "Enter a valid email address.";
+      return { fieldErrors: { email: "Enter a valid email address, like name@example.com." } };
     default:
-      return error.status === "TOO_MANY_REQUESTS"
-        ? "Too many attempts. Please wait a moment and try again."
-        : "We couldn't create your account. Please try again.";
+      return {
+        error:
+          error.status === "TOO_MANY_REQUESTS"
+            ? RATE_LIMITED
+            : "We couldn't create your account. Please try again.",
+      };
   }
 }
 
