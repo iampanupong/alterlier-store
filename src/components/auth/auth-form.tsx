@@ -11,6 +11,7 @@ import {
   type AuthMode,
   type FieldErrors,
 } from "@/lib/auth-validation";
+import { Spinner } from "@/components/ui/spinner";
 
 type AuthFormProps = {
   mode: AuthMode;
@@ -288,15 +289,6 @@ function PasswordField({
           {visible ? "Hide" : "Show"}
         </button>
       }
-    />
-  );
-}
-
-function Spinner() {
-  return (
-    <span
-      aria-hidden="true"
-      className="size-3 animate-spin rounded-full border border-current border-t-transparent motion-reduce:hidden"
     />
   );
 }

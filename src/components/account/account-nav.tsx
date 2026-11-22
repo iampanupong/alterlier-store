@@ -9,13 +9,18 @@ import { Breadcrumb } from "@/components/breadcrumb";
 /** Account sections, in nav order. Add new account pages here. */
 export const ACCOUNT_SECTIONS = [
   { href: "/account", label: "Overview" },
+  { href: "/account/orders", label: "Orders" },
   { href: "/account/details", label: "Account details" },
 ] as const;
 
 const ROOT = ACCOUNT_SECTIONS[0];
 
 function currentSection(pathname: string) {
-  return ACCOUNT_SECTIONS.find((section) => section.href === pathname);
+  // Nested pages (an order under /account/orders) belong to their section.
+  return (
+    ACCOUNT_SECTIONS.find((section) => section.href === pathname) ??
+    ACCOUNT_SECTIONS.find((section) => section !== ROOT && pathname.startsWith(`${section.href}/`))
+  );
 }
 
 /** Home / My account / <section>, derived from the URL so pages don't repeat it. */

@@ -2,31 +2,35 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { AcceptChangesButton } from "@/components/cart/accept-changes-button";
 import { CartLine } from "@/components/cart/cart-line";
+import { CheckoutButton } from "@/components/cart/checkout-button";
 import { ArrowRightIcon, BagIcon } from "@/components/ui/icons";
 import { formatPrice } from "@/lib/catalog";
 import { getCart } from "@/lib/cart";
+import { getSession, signInHref } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Shopping bag",
   robots: { index: false, follow: false },
 };
 
-export default function CartPage() {
+export default function CartPage({ searchParams }: PageProps<"/cart">) {
   return (
     <main id="main" className="pt-header">
       <div className="container-page pt-6 pb-section">
         <Breadcrumb current="Shopping bag" />
         <Suspense fallback={<CartFallback />}>
-          <CartContents />
+          <CartContents searchParams={searchParams} />
         </Suspense>
       </div>
     </main>
   );
 }
 
-async function CartContents() {
-  const cart = await getCart();
+async function CartContents({ searchParams }: Pick<PageProps<"/cart">, "searchParams">) {
+  const [cart, session, params] = await Promise.all([getCart(), getSession(), searchParams]);
+  const canceled = params.checkout === "canceled";
 
   if (cart.lines.length === 0) {
     return (
@@ -61,10 +65,23 @@ async function CartContents() {
       <CartHeading count={items} />
       <div className="mt-8 lg:mt-10 lg:grid lg:grid-cols-12 lg:items-start lg:gap-12 xl:gap-16">
         <section aria-label="Items in your bag" className="lg:col-span-8">
+          {canceled && (
+            <div role="status" className="mb-4 border-l-2 border-ink bg-surface px-4 py-3 text-body">
+              <p className="font-bold">Checkout canceled</p>
+              <p className="mt-1 text-muted">
+                Nothing was charged and your bag is just as you left it. Check out again
+                whenever you&rsquo;re ready.
+              </p>
+            </div>
+          )}
           {cart.hasIssues && (
-            <p role="alert" className="mb-4 border-l-2 border-danger bg-surface px-4 py-3 text-body">
-              Some pieces changed since you added them. Please review the highlighted items.
-            </p>
+            <div role="alert" className="mb-4 border-l-2 border-danger bg-surface px-4 py-3 text-body">
+              <p className="font-bold">Some pieces changed since you added them</p>
+              <p className="mt-1 text-muted">
+                Review the highlighted items, then update your bag to continue to checkout.
+              </p>
+              <AcceptChangesButton />
+            </div>
           )}
           <ul className="divide-y divide-line border-y border-line">
             {cart.lines.map((line, i) => (
@@ -86,22 +103,38 @@ async function CartContents() {
           <dl className="mt-6 space-y-3 text-body">
             <div className="flex justify-between gap-4">
               <dt>Subtotal · {items}</dt>
-              <dd className="font-bold tabular-nums" aria-live="polite">
+              <dd className="tabular-nums">{formatPrice(cart.subtotal)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt>Shipping</dt>
+              <dd className="text-muted">Complimentary</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 border-t border-line pt-4">
+              <dt className="font-bold">Total</dt>
+              <dd className="text-title tabular-nums" aria-live="polite">
                 {formatPrice(cart.subtotal)}
+                <span className="sr-only"> US dollars</span>
               </dd>
             </div>
-            <div className="flex justify-between gap-4 text-muted">
-              <dt>Shipping</dt>
-              <dd>Complimentary</dd>
-            </div>
           </dl>
-          <p className="mt-6 border-t border-line pt-4 text-caption text-muted">
-            Prices and availability are confirmed each time you update your bag. Taxes are
-            calculated at checkout.
+          <p className="mt-2 text-caption text-muted">
+            In USD. Prices and availability are confirmed again when you check out.
           </p>
-          <button type="button" className="btn btn-primary btn-block mt-6" disabled>
-            Checkout coming soon
-          </button>
+          {session ? (
+            <CheckoutButton blocked={cart.hasIssues || cart.itemCount === 0} />
+          ) : (
+            <div className="mt-6">
+              <Link href={signInHref("/cart")} className="btn btn-primary btn-block">
+                Sign in to check out
+              </Link>
+              <p className="mt-3 text-caption text-muted">
+                Your bag is saved while you sign in.{" "}
+                <Link href={`/sign-up?next=${encodeURIComponent("/cart")}`} className="link text-ink">
+                  Create an account
+                </Link>
+              </p>
+            </div>
+          )}
         </aside>
       </div>
     </>
