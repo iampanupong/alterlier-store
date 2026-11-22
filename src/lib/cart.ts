@@ -13,7 +13,7 @@ import {
   type StoredLine,
 } from "@/lib/cart-model";
 
-const CART_COOKIE = "cart";
+export const CART_COOKIE = "cart";
 const CART_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 export type CartLine = {

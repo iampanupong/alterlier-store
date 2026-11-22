@@ -11,6 +11,8 @@ import {
   isProductId,
   MAX_LINES,
   parseQuantity,
+  reconcile,
+  toStored,
   type CartChange,
 } from "@/lib/cart-model";
 
@@ -74,4 +76,15 @@ export async function updateCartLineAction(
   const quantity = parseQuantity(formData.get("quantity"));
   if (!isProductId(id) || quantity === null) return { ...INVALID, at: Date.now() };
   return mutate(quantity === 0 ? { type: "remove", id } : { type: "set", id, quantity });
+}
+
+/**
+ * Accepts what changed since the shopper added things: reduced lines keep the quantity
+ * still available and sold-out lines are dropped. Cookies can't be corrected while
+ * rendering, so the bag page offers this before checkout.
+ */
+export async function acceptCartChangesAction(): Promise<void> {
+  const stored = await readStoredCart();
+  const products = await getLiveProducts(stored.map((line) => line.id));
+  await writeStoredCart(toStored(reconcile(stored, products)));
 }
