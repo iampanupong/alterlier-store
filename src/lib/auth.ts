@@ -32,6 +32,10 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // slide the expiry at most once a day
     cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
+  // Sign-in/up go through the rate-limited server actions in src/app/(auth)/actions.ts.
+  // Close the HTTP doors so they can't be used to skip those limits. `auth.api.*` calls
+  // are unaffected (disabledPaths only applies to HTTP requests).
+  disabledPaths: ["/sign-in/email", "/sign-up/email"],
   advanced: {
     database: { generateId: "uuid" },
   },

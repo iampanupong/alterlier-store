@@ -42,11 +42,20 @@ export function signInHref(returnTo?: string) {
   return next ? `${SIGN_IN_PATH}?next=${encodeURIComponent(next)}` : SIGN_IN_PATH;
 }
 
-/** Same-origin relative path only: blocks `//host`, `/\host` and absolute URLs. */
+const NEXT_BASE = "http://next.invalid";
+
+/**
+ * Same-origin relative path only. Parsed the way a browser would, so tricks like
+ * `//host`, `/\host` and `/<tab>/host` (browsers strip tabs/newlines) all fall back.
+ */
 export function safeNext(value: unknown, fallback = "/account") {
-  if (typeof value !== "string") return fallback;
-  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+  if (typeof value !== "string" || !value.startsWith("/")) return fallback;
+  let url: URL;
+  try {
+    url = new URL(value, NEXT_BASE);
+  } catch {
     return fallback;
   }
-  return value;
+  if (url.origin !== NEXT_BASE) return fallback;
+  return url.pathname + url.search + url.hash;
 }
