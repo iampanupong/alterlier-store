@@ -302,6 +302,28 @@
   }
 }
 
+/* Slow hover zoom for an image inside a `.group` link/card. Ease-out so it
+   responds the instant the pointer arrives, and its own compositor layer so the
+   image scales without re-rasterising (no jitter or snap at either end). */
+@utility media-zoom {
+  transform: translateZ(0) scale(1);
+  backface-visibility: hidden;
+  will-change: transform;
+  transition: transform 1400ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  :where(.group):hover & {
+    transform: translateZ(0) scale(1.04);
+  }
+
+  /* Base styles cut transitions to ~0ms here, which would make the zoom snap.
+     Hold the image still instead. */
+  @media (prefers-reduced-motion: reduce) {
+    :where(.group):hover & {
+      transform: translateZ(0) scale(1);
+    }
+  }
+}
+
 @utility media-portrait {
   aspect-ratio: 3 / 4;
 }

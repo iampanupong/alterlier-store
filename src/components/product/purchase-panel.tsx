@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { HeartIcon } from "@/components/ui/icons";
 import type { StockState } from "@/lib/catalog";
@@ -48,14 +47,7 @@ export function PurchasePanel({ productName, stock }: PurchasePanelProps) {
       </div>
 
       <p role="status" className="min-h-4 text-caption">
-        {added && (
-          <>
-            Added to your bag.{" "}
-            <Link href="/cart" className="link">
-              View bag
-            </Link>
-          </>
-        )}
+        {added && "Added to your bag."}
         {notify && "We’ll email you as soon as this piece is back in stock."}
       </p>
     </div>

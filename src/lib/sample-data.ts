@@ -153,7 +153,7 @@ export const footerNav = [
 ];
 
 export const mainNav = [
-  { label: "New In", href: "/new" },
+  { label: "New In", href: "/new-arrivals" },
   { label: "Women", href: "/women" },
   { label: "Men", href: "/men" },
   { label: "Bags", href: "/categories/bags" },

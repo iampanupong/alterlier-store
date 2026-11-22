@@ -22,7 +22,7 @@ export function FeaturedCollections() {
                   alt={collection.image.alt}
                   fill
                   sizes="(min-width: 64rem) 30vw, (min-width: 40rem) 45vw, 100vw"
-                  className="transition-transform duration-[1200ms] ease-luxe group-hover:scale-[1.03]"
+                  className="media-zoom"
                 />
               </div>
               <h3 className="mt-5 text-title">{collection.name}</h3>

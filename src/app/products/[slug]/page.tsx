@@ -13,6 +13,7 @@ import {
   getProductSlugs,
   getRelatedProducts,
 } from "@/lib/catalog";
+import imageLoader from "@/lib/image-loader";
 import { services } from "@/lib/sample-data";
 
 export async function generateStaticParams() {
@@ -27,7 +28,12 @@ export async function generateMetadata({
   return {
     title: product.name,
     description: product.description,
-    openGraph: { images: [{ url: product.image.src, alt: product.image.alt }] },
+    // Resized through the image loader so crawlers don't fetch the full-resolution original.
+    openGraph: {
+      images: [
+        { url: imageLoader({ src: product.image.src, width: 1200 }), alt: product.image.alt },
+      ],
+    },
   };
 }
 

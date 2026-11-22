@@ -30,6 +30,10 @@ export const categories = pgTable("categories", {
   image: jsonb("image").$type<Image>(),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const products = pgTable(
@@ -62,6 +66,7 @@ export const products = pgTable(
     index("products_category_id_idx").on(t.categoryId),
     check("products_price_cents_check", sql`${t.priceCents} >= 0`),
     check("products_stock_quantity_check", sql`${t.stockQuantity} >= 0`),
+    check("products_low_stock_threshold_check", sql`${t.lowStockThreshold} >= 0`),
   ],
 );
 
