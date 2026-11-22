@@ -19,7 +19,7 @@ export function EditorialPair() {
               alt={item.image.alt}
               fill
               sizes="(min-width: 48rem) 50vw, 100vw"
-              className="transition-transform duration-[1200ms] ease-luxe group-hover:scale-[1.03]"
+              className="media-zoom"
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/55 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 p-8 text-center text-white lg:p-12">

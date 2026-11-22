@@ -11,7 +11,7 @@ export async function NewArrivals() {
         id="new-arrivals-title"
         eyebrow="Just landed"
         title="New Arrivals"
-        action={{ label: "View all", href: "/new" }}
+        action={{ label: "View all", href: "/new-arrivals" }}
       />
       <div className="grid-products border-y border-line">
         {newArrivals.map((product) => (

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { HeartIcon } from "@/components/ui/icons";
+import { SaveButton } from "@/components/save-button";
 import { formatPrice, type Product } from "@/lib/catalog";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -12,7 +12,7 @@ export function ProductCard({ product }: { product: Product }) {
           alt={product.image.alt}
           fill
           sizes="(min-width: 64rem) 25vw, (min-width: 48rem) 33vw, 50vw"
-          className="transition-transform duration-[1200ms] ease-luxe group-hover:scale-[1.03]"
+          className="media-zoom"
         />
         {product.badge && (
           <span className="absolute top-3 left-3 bg-paper px-2 py-1 text-caption">
@@ -37,13 +37,7 @@ export function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* Sits above the card-wide link overlay so it stays independently clickable. */}
-      <button
-        type="button"
-        aria-label={`Save ${product.name}`}
-        className="btn-icon absolute top-1 right-1 z-10"
-      >
-        <HeartIcon />
-      </button>
+      <SaveButton productName={product.name} className="btn-icon absolute top-1 right-1 z-10" />
     </article>
   );
 }

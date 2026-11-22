@@ -12,5 +12,5 @@ export default function imageLoader({ src, width, quality }: ImageLoaderProps) {
     url.searchParams.set("q", String(quality ?? 75));
     return url.toString();
   }
-  return `${src}?w=${width}`;
+  return `${src}${src.includes("?") ? "&" : "?"}w=${width}`;
 }

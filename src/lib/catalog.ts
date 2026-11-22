@@ -4,7 +4,7 @@
 import { sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
-import type { Image } from "@/db/catalog";
+import { categories, type Image } from "@/db/catalog";
 
 export type { Image };
 
@@ -151,10 +151,135 @@ export async function getRailCategories(): Promise<Category[]> {
   }));
 }
 
-const priceFormat = new Intl.NumberFormat("en-US", {
+export type CategorySummary = Category & { productCount: number };
+
+/**
+ * Categories that have products, in rail order. Categories without their own image
+ * use their newest product's image.
+ */
+export async function getCategorySummaries(): Promise<CategorySummary[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(CATALOG_TAG);
+
+  const rows = await db.query.categories.findMany({
+    orderBy: (c, { asc }) => [asc(c.sortOrder), asc(c.name)],
+    with: {
+      products: {
+        columns: { image: true },
+        orderBy: (p, { desc }) => [desc(p.createdAt)],
+        limit: 1,
+      },
+    },
+    // Relational queries re-alias interpolated columns to the root table, so the
+    // subquery's own columns are written out literally.
+    extras: (c) => ({
+      productCount: sql<number>`(select count(*)::int from "products" p where p."category_id" = ${c.id})`.as(
+        "product_count",
+      ),
+    }),
+  });
+  return rows
+    .filter((row) => row.productCount > 0)
+    .map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      href: categoryHref(row.slug),
+      image: row.image ?? row.products[0].image,
+      productCount: row.productCount,
+    }));
+}
+
+export async function getCategorySlugs() {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(CATALOG_TAG);
+
+  const rows = await db.query.categories.findMany({ columns: { slug: true } });
+  return rows.map((row) => row.slug);
+}
+
+export async function getCategoryBySlug(slug: string): Promise<CategoryRef | undefined> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(CATALOG_TAG);
+
+  const row = await db.query.categories.findFirst({
+    where: (c, { eq }) => eq(c.slug, slug),
+    columns: { id: true, slug: true, name: true },
+  });
+  return row && { id: row.id, name: row.name, href: categoryHref(row.slug) };
+}
+
+/** Newest first. */
+export async function getProductsByCategory(categoryId: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(CATALOG_TAG);
+
+  const rows = await db.query.products.findMany({
+    where: (p, { eq }) => eq(p.categoryId, categoryId),
+    with: { category: true },
+    orderBy: (p, { desc }) => [desc(p.createdAt)],
+  });
+  return rows.map(toProduct);
+}
+
+/** Longest query `searchProducts` accepts; anything beyond it is ignored. */
+export const SEARCH_QUERY_MAX = 100;
+const SEARCH_LIMIT = 48;
+
+/** Escapes LIKE wildcards so user input only ever matches literally. */
+function likePattern(term: string) {
+  return `%${term.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
+/**
+ * Products where every word of `query` appears in the name, description, SKU or
+ * category name. Name matches rank first, then newest.
+ */
+export async function searchProducts(query: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(CATALOG_TAG);
+
+  const terms = query.slice(0, SEARCH_QUERY_MAX).toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return [];
+
+  const rows = await db.query.products.findMany({
+    where: (p, { and, or, ilike, inArray }) =>
+      and(
+        ...terms.map((term) =>
+          or(
+            ilike(p.name, likePattern(term)),
+            ilike(p.description, likePattern(term)),
+            ilike(p.sku, likePattern(term)),
+            inArray(
+              p.categoryId,
+              db
+                .select({ id: categories.id })
+                .from(categories)
+                .where(ilike(categories.name, likePattern(term))),
+            ),
+          ),
+        ),
+      ),
+    with: { category: true },
+    orderBy: (p, { desc }) => [
+      desc(sql`${p.name} ilike ${likePattern(terms.join(" "))}`),
+      desc(p.createdAt),
+    ],
+    limit: SEARCH_LIMIT,
+  });
+  return rows.map(toProduct);
+}
+
+const priceFormat =new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
-  maximumFractionDigits: 0,
+  // "$2,450" for whole amounts, "$199.50" otherwise.
+  trailingZeroDisplay: "stripIfInteger",
 });
 
 export function formatPrice(amount: number) {

@@ -1,0 +1,2 @@
+ALTER TABLE "categories" ADD COLUMN "updated_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "products" ADD CONSTRAINT "products_low_stock_threshold_check" CHECK ("products"."low_stock_threshold" >= 0);

@@ -1,8 +1,10 @@
-// Loads the catalogue seed data. Idempotent: rows are upserted by slug.
+// Loads the catalogue seed data. Idempotent: rows are upserted by slug. Stock and
+// created_at are only set when a product is first inserted, so re-running never
+// overwrites live inventory or reorders New Arrivals.
 // Run with `pnpm db:seed` after `pnpm db:migrate`.
 
 import "dotenv/config";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./index";
 import { categories, products } from "./catalog";
 import { categories as seedCategories, products as seedProducts } from "./seed-data";
@@ -24,6 +26,7 @@ async function main() {
         name: sql`excluded.name`,
         image: sql`excluded.image`,
         sortOrder: sql`excluded.sort_order`,
+        updatedAt: sql`now()`,
       },
     })
     .returning({ id: categories.id, slug: categories.slug });
@@ -51,6 +54,19 @@ async function main() {
     };
   });
 
+  // The upsert below matches on slug, so a product whose slug was renamed in
+  // seed-data would collide with its own row on the unique sku. Move those rows
+  // to the new slug first.
+  const existing = await db.select({ slug: products.slug, sku: products.sku }).from(products);
+  const slugBySku = new Map(existing.map((row) => [row.sku, row.slug]));
+  const takenSlugs = new Set(existing.map((row) => row.slug));
+  for (const p of productValues) {
+    const currentSlug = slugBySku.get(p.sku);
+    if (currentSlug && currentSlug !== p.slug && !takenSlugs.has(p.slug)) {
+      await db.update(products).set({ slug: p.slug }).where(eq(products.sku, p.sku));
+    }
+  }
+
   await db
     .insert(products)
     .values(productValues)
@@ -66,8 +82,6 @@ async function main() {
         badge: sql`excluded.badge`,
         image: sql`excluded.image`,
         gallery: sql`excluded.gallery`,
-        stockQuantity: sql`excluded.stock_quantity`,
-        createdAt: sql`excluded.created_at`,
         updatedAt: sql`now()`,
       },
     });

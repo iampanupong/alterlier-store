@@ -8,7 +8,12 @@ export async function CategoryRail() {
 
   return (
     <section aria-labelledby="categories-title" className="section">
-      <SectionHeading id="categories-title" eyebrow="Explore" title="Shop by Category" />
+      <SectionHeading
+        id="categories-title"
+        eyebrow="Explore"
+        title="Shop by Category"
+        action={{ label: "View all", href: "/categories" }}
+      />
       <ul className="scroll-row gap-3 scroll-px-gutter px-gutter pb-2 lg:gap-4">
         {categories.map((category) => (
           <li key={category.id} className="w-[68vw] sm:w-[40vw] lg:w-[calc((100%-3*1rem)/4.4)]">
@@ -19,7 +24,7 @@ export async function CategoryRail() {
                   alt={category.image.alt}
                   fill
                   sizes="(min-width: 64rem) 23vw, (min-width: 40rem) 40vw, 68vw"
-                  className="transition-transform duration-[1200ms] ease-luxe group-hover:scale-[1.03]"
+                  className="media-zoom"
                 />
               </div>
               <p className="link-quiet mt-4 inline-block text-label uppercase group-hover:decoration-current">
