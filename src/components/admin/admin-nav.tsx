@@ -8,6 +8,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 export const ADMIN_SECTIONS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/products", label: "Products" },
+  { href: "/admin/inventory", label: "Inventory" },
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/orders", label: "Orders" },
 ] as const;

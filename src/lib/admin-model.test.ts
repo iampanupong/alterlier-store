@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   galleryText,
+  parseAdjustStockForm,
   LIMITS,
   parseGallery,
   parseImageUrl,
@@ -204,6 +205,37 @@ describe("parseStockForm", () => {
     for (const quantity of ["-1", "1.5", "", String(LIMITS.stock + 1)]) {
       const result = parseStockForm(form({ productId: PRODUCT, expected: "4", quantity }));
       assert.ok(!result.ok && "fieldErrors" in result, quantity);
+    }
+  });
+});
+
+describe("parseAdjustStockForm", () => {
+  test("add and remove become a signed delta", () => {
+    assert.deepEqual(parseAdjustStockForm(form({ productId: PRODUCT, op: "add", amount: "5" })), {
+      ok: true,
+      value: { productId: PRODUCT, delta: 5 },
+    });
+    assert.deepEqual(parseAdjustStockForm(form({ productId: PRODUCT, op: "remove", amount: " 2 " })), {
+      ok: true,
+      value: { productId: PRODUCT, delta: -2 },
+    });
+    assert.deepEqual(parseAdjustStockForm(form({ productId: PRODUCT, op: "add", amount: String(LIMITS.stock) })), {
+      ok: true,
+      value: { productId: PRODUCT, delta: LIMITS.stock },
+    });
+  });
+
+  test("tampered hidden fields are invalid, a bad amount is a field error", () => {
+    for (const fields of [
+      { productId: "x", op: "add", amount: "1" },
+      { productId: PRODUCT, op: "set", amount: "1" },
+      { productId: PRODUCT, op: "", amount: "1" },
+    ]) {
+      assert.deepEqual(parseAdjustStockForm(form(fields)), { ok: false, invalid: true }, JSON.stringify(fields));
+    }
+    for (const amount of ["0", "-1", "1.5", "", "abc", String(LIMITS.stock + 1)]) {
+      const result = parseAdjustStockForm(form({ productId: PRODUCT, op: "remove", amount }));
+      assert.ok(!result.ok && "fieldErrors" in result, amount);
     }
   });
 });
