@@ -98,7 +98,7 @@ function statusMessage(status: OrderStatus) {
     case "pending":
       return "We haven't received payment confirmation for this order yet. If you just paid, it usually arrives within a few seconds.";
     case "failed":
-      return "The payment didn't go through, so nothing was charged and the pieces were released. Open a piece above to add it to your bag again.";
+      return "The payment didn't go through, so nothing was charged and the pieces were released. Open a piece below to add it to your bag again.";
     case "expired":
     case "canceled":
       return "This checkout wasn't completed. No payment was taken.";
