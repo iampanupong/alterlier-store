@@ -10,6 +10,7 @@ import type Stripe from "stripe";
 import { db } from "@/db";
 import { orderItems, orders, stripeEvents, type OrderStatus as DbOrderStatus, type ShippingAddress } from "@/db/orders";
 import { products } from "@/db/catalog";
+import { CHECK_VIOLATION, FK_VIOLATION, pgCode } from "@/lib/pg-errors";
 import {
   decidePayment,
   isUuid,
@@ -29,17 +30,6 @@ export type OrderWithItems = Order & {
 
 /** Line snapshots plus the product slug, so order pages can link back to the piece. */
 const withItems = { items: { with: { product: { columns: { slug: true } } } } } as const;
-
-/** Postgres SQLSTATE from a driver error, looking through Drizzle's wrapper. */
-function pgCode(error: unknown): string | undefined {
-  for (let e = error as { code?: unknown; cause?: unknown } | undefined; e; e = e.cause as typeof e) {
-    if (typeof e.code === "string" && /^[0-9A-Z]{5}$/.test(e.code)) return e.code;
-  }
-  return undefined;
-}
-
-const CHECK_VIOLATION = "23514";
-const FK_VIOLATION = "23503";
 
 /**
  * Inserts the order and its line snapshots and reserves stock, all or nothing. The

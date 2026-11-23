@@ -59,7 +59,8 @@ function categoryHref(slug: string) {
   return `/categories/${slug}`;
 }
 
-function toStockState(quantity: number, lowStockThreshold: number): StockState {
+/** Availability derived from stock (never stored). Shared by the storefront and admin. */
+export function toStockState(quantity: number, lowStockThreshold: number): StockState {
   if (quantity <= 0) return { status: "out_of_stock" };
   if (quantity <= lowStockThreshold) return { status: "low_stock", quantity };
   return { status: "in_stock" };

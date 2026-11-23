@@ -22,16 +22,33 @@ export async function requireUser(returnTo = "/account") {
 }
 
 /**
+ * Session read from the database, bypassing the cookie cache, so a role change
+ * applies on the next request. Deduped per request: the admin layout and page share it.
+ */
+const getFreshSession = cache(async () =>
+  auth.api.getSession({
+    headers: await headers(),
+    query: { disableCookieCache: true },
+  }),
+);
+
+/**
+ * The admin user, or null. For deciding what to *render* (the admin nav) only.
+ * Authorization is always `requireAdmin()` in the page, action or route handler.
+ */
+export async function getAdmin() {
+  const session = await getFreshSession();
+  return session?.user.role === "admin" ? session.user : null;
+}
+
+/**
  * Admin user. Reads the role from the database (bypassing the cookie cache) so a
  * promotion or demotion applies on the next request. Non-admins get a 404 so the
  * route's existence isn't confirmed. Call this in every admin page AND every
- * admin server action / route handler.
+ * admin server action / route handler (enforced by src/lib/admin-guard.test.ts).
  */
 export async function requireAdmin(returnTo = "/admin") {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  });
+  const session = await getFreshSession();
   if (!session) redirect(signInHref(returnTo));
   if (session.user.role !== "admin") notFound();
   return session.user;
