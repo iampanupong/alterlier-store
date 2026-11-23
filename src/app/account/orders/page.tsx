@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { DetailListFallback } from "@/components/account/detail-list";
-import { formatPrice } from "@/lib/format";
+import { orderDate, orderNumber, price } from "@/components/order/order-parts";
+import { ArrowRightIcon } from "@/components/ui/icons";
 import { ORDER_STATUS_LABEL } from "@/lib/order-model";
 import { getUserOrders } from "@/lib/orders";
 import { requireUser } from "@/lib/session";
@@ -11,8 +12,6 @@ export const metadata: Metadata = {
   title: "Orders",
   robots: { index: false, follow: false },
 };
-
-const orderDate = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
 
 export default function OrdersPage() {
   return (
@@ -52,19 +51,37 @@ async function OrderList() {
         const count = order.items.reduce((sum, item) => sum + item.quantity, 0);
         return (
           <li key={order.id}>
+            {/* One row per order: two lines on phones, a single row from `sm` up. */}
             <Link
               href={`/account/orders/${order.id}`}
-              className="grid gap-1 py-4 hover:text-muted sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4"
+              className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 py-5 sm:grid-cols-[minmax(0,1fr)_10rem_6rem_1rem] sm:gap-x-6"
             >
-              <span>
-                <span className="eyebrow block">{ORDER_STATUS_LABEL[order.status]}</span>
-                <span className="text-body">
-                  {orderDate.format(order.createdAt)} · {count} {count === 1 ? "item" : "items"}
+              <span className="min-w-0">
+                <span className="block text-body font-bold group-hover:underline group-hover:underline-offset-4">
+                  Order {orderNumber(order.id)}
+                </span>
+                <span className="mt-1 block text-caption text-muted">
+                  <time dateTime={order.createdAt.toISOString()}>
+                    {orderDate.format(order.createdAt)}
+                  </time>{" "}
+                  · {count} {count === 1 ? "item" : "items"}
                 </span>
               </span>
-              <span className="text-body font-bold tabular-nums">
-                {formatPrice(order.totalCents / 100)}
+              <span className="col-start-1 row-start-2 sm:col-start-2 sm:row-start-1">
+                <span className="sr-only">Payment status: </span>
+                <span className={`eyebrow ${order.status === "paid" ? "text-ink" : "text-muted"}`}>
+                  {ORDER_STATUS_LABEL[order.status]}
+                </span>
               </span>
+              <span className="col-start-2 row-start-1 text-right text-body font-bold tabular-nums sm:col-start-3">
+                <span className="sr-only">Total: </span>
+                {price(order.totalCents)}
+              </span>
+              <ArrowRightIcon
+                width={16}
+                height={16}
+                className="col-start-2 row-start-2 justify-self-end text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-ink sm:col-start-4 sm:row-start-1"
+              />
             </Link>
           </li>
         );
