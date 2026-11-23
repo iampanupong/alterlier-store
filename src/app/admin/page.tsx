@@ -1,40 +1,33 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { refreshCatalogAction } from "@/app/admin/actions";
+import { AdminFallback, AdminHeading } from "@/components/admin/admin-page";
 import { getCategorySummaries } from "@/lib/catalog";
 import { requireAdmin } from "@/lib/session";
 
-export const metadata: Metadata = {
-  title: "Admin",
-  robots: { index: false, follow: false },
-};
+export const metadata: Metadata = { title: "Overview" };
 
 export default function AdminPage() {
   return (
-    <main id="main" className="pt-header">
-      <div className="px-gutter pt-10 pb-section lg:pt-16">
-        <Suspense fallback={<div aria-hidden="true" className="h-10 w-40 bg-surface-strong" />}>
-          <AdminHome />
-        </Suspense>
-      </div>
-    </main>
+    <Suspense fallback={<AdminFallback />}>
+      <AdminHome />
+    </Suspense>
   );
 }
 
 async function AdminHome() {
-  const user = await requireAdmin();
+  const user = await requireAdmin("/admin");
   const categories = await getCategorySummaries();
   const productCount = categories.reduce((sum, c) => sum + c.productCount, 0);
 
   return (
     <div className="max-w-md">
-      <p className="eyebrow text-muted">Admin</p>
-      <h1 className="mt-2 text-display">Catalogue</h1>
-      <p className="mt-3 text-body text-muted">Signed in as {user.email}.</p>
+      <AdminHeading title="Admin" description={`Signed in as ${user.email}.`} />
 
       <dl className="mt-10 grid grid-cols-2 border-y border-line">
-        <Stat term="Categories" value={categories.length} />
-        <Stat term="Products" value={productCount} />
+        <Stat term="Categories" value={categories.length} href="/admin/categories" />
+        <Stat term="Products" value={productCount} href="/admin/products" />
       </dl>
 
       <form action={refreshCatalogAction} className="mt-10">
@@ -46,10 +39,14 @@ async function AdminHome() {
   );
 }
 
-function Stat({ term, value }: { term: string; value: number }) {
+function Stat({ term, value, href }: { term: string; value: number; href: string }) {
   return (
     <div className="py-4 not-first:border-l not-first:border-line not-first:pl-4">
-      <dt className="eyebrow text-muted">{term}</dt>
+      <dt className="eyebrow text-muted">
+        <Link href={href} className="link-quiet">
+          {term}
+        </Link>
+      </dt>
       <dd className="mt-1 text-heading">{value}</dd>
     </div>
   );
