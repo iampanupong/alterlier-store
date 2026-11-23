@@ -160,3 +160,13 @@ export const mainNav = [
   { label: "Jewelry & Watches", href: "/categories/jewelry" },
   { label: "Gifts", href: "/collections/gifts" },
 ];
+
+/** Editorial image beside the sign-in / sign-up forms. */
+export const accountEditorial = {
+  eyebrow: "Nord Alterlier account",
+  title: "Your details, orders and saved pieces in one place.",
+  image: {
+    src: unsplash("1490481651871-ab68de25d43d"),
+    alt: "Light garments hanging from a branch rail in a bright studio",
+  },
+} satisfies { eyebrow: string; title: string; image: Image };

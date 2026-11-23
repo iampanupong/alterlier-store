@@ -154,12 +154,15 @@ export function AuthForm({ mode, next }: AuthFormProps) {
         )}
       </button>
 
-      <p className="text-caption text-muted">
-        {copy.switchText}{" "}
-        <Link href={`${copy.switchHref}${nextQuery}`} className="link text-ink">
+      <div className="border-t border-line pt-8">
+        <p className="text-title">{copy.switchText}</p>
+        <Link
+          href={`${copy.switchHref}${nextQuery}`}
+          className="btn btn-secondary btn-block mt-4"
+        >
           {copy.switchLabel}
         </Link>
-      </p>
+      </div>
     </form>
   );
 }
