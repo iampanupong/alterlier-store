@@ -30,8 +30,12 @@ export function ProductCard({ product }: { product: Product }) {
         </h3>
         <p className="text-caption">
           {formatPrice(product.price)}
+          {/* Same wording as StockStatus on the product page. */}
           {product.stock.status === "out_of_stock" && (
             <span className="text-muted"> · Sold out</span>
+          )}
+          {product.stock.status === "low_stock" && (
+            <span className="font-bold"> · Only {product.stock.quantity} left</span>
           )}
         </p>
       </div>
