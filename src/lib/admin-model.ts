@@ -267,3 +267,26 @@ export function parseStockForm(form: Source): Parsed<StockInput, StockField> | {
   }
   return { ok: true, value: { productId, expected, quantity } };
 }
+
+export type AdjustStockField = "amount";
+export type AdjustStockInput = { productId: string; delta: number };
+
+/**
+ * Relative stock change ("received 5", "remove 2"): a positive amount plus a direction,
+ * turned into a signed delta. Relative changes compose with concurrent checkout
+ * reservations, so no `expected` value is needed. The resulting quantity is bounds-
+ * checked in SQL (adjustStock), not here.
+ */
+export function parseAdjustStockForm(
+  form: Source,
+): Parsed<AdjustStockInput, AdjustStockField> | { ok: false; invalid: true } {
+  const productId = text(form, "productId");
+  const op = text(form, "op");
+  if (!isUuid(productId) || (op !== "add" && op !== "remove")) return { ok: false, invalid: true };
+
+  const amount = parseInteger(text(form, "amount"), 1, LIMITS.stock);
+  if (amount === null) {
+    return { ok: false, fieldErrors: { amount: `Enter a whole number from 1 to ${LIMITS.stock}.` } };
+  }
+  return { ok: true, value: { productId, delta: op === "add" ? amount : -amount } };
+}

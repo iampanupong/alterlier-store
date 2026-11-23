@@ -5,14 +5,13 @@ import { sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db";
 import { categories, type Image } from "@/db/catalog";
+import { toStockState, type StockState } from "@/lib/stock";
 
 export type { Image };
 export { formatPrice } from "@/lib/format";
 
-export type StockState =
-  | { status: "in_stock" }
-  | { status: "low_stock"; quantity: number }
-  | { status: "out_of_stock" };
+export type { StockState } from "@/lib/stock";
+export { toStockState };
 
 export type CategoryRef = {
   id: string;
@@ -57,13 +56,6 @@ function findProduct(slug: string) {
 
 function categoryHref(slug: string) {
   return `/categories/${slug}`;
-}
-
-/** Availability derived from stock (never stored). Shared by the storefront and admin. */
-export function toStockState(quantity: number, lowStockThreshold: number): StockState {
-  if (quantity <= 0) return { status: "out_of_stock" };
-  if (quantity <= lowStockThreshold) return { status: "low_stock", quantity };
-  return { status: "in_stock" };
 }
 
 function toProduct(row: ProductRow): Product {

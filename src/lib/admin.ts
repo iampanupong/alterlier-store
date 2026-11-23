@@ -4,10 +4,16 @@
 // Callers invalidate CATALOG_TAG after a successful write.
 
 import "server-only";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, between, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { categories, products } from "@/db/catalog";
-import type { NewProductInput, ProductInput, StockInput } from "@/lib/admin-model";
+import {
+  LIMITS,
+  type AdjustStockInput,
+  type NewProductInput,
+  type ProductInput,
+  type StockInput,
+} from "@/lib/admin-model";
 import { isUuid } from "@/lib/order-model";
 import { FK_VIOLATION, pgCode, pgConstraint, UNIQUE_VIOLATION } from "@/lib/pg-errors";
 
@@ -119,5 +125,34 @@ export async function setStock({ productId, expected, quantity }: StockInput): P
   });
   return current
     ? { ok: false, reason: "changed", current: current.stockQuantity }
+    : { ok: false, reason: "not_found" };
+}
+
+export type AdjustStockResult =
+  | { ok: true; quantity: number }
+  | { ok: false; reason: "out_of_range"; current: number }
+  | { ok: false; reason: "not_found" };
+
+/**
+ * Adds or removes units relative to the current stock in one atomic statement, so it
+ * composes with concurrent checkout reservations and releases instead of conflicting
+ * with them. Refuses (writes nothing) if the result would leave 0…LIMITS.stock; the
+ * `products_stock_quantity_check` constraint remains the final backstop.
+ */
+export async function adjustStock({ productId, delta }: AdjustStockInput): Promise<AdjustStockResult> {
+  const next = sql`${products.stockQuantity} + ${delta}`;
+  const rows = await db
+    .update(products)
+    .set({ stockQuantity: next })
+    .where(and(eq(products.id, productId), between(next, 0, LIMITS.stock)))
+    .returning({ quantity: products.stockQuantity });
+  if (rows[0]) return { ok: true, quantity: rows[0].quantity };
+
+  const current = await db.query.products.findFirst({
+    where: eq(products.id, productId),
+    columns: { stockQuantity: true },
+  });
+  return current
+    ? { ok: false, reason: "out_of_range", current: current.stockQuantity }
     : { ok: false, reason: "not_found" };
 }
